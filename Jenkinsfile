@@ -9,7 +9,6 @@ pipeline {
         CONTAINER_NAME = 'ankur22bcd46-container'
         REGISTRY = 'docker.io'
         SONAR_HOST_URL = 'http://localhost:9000'
-        SONAR_TOKEN = 'sqp_69f5f8d73a43f87e9c73e544b0f2dda132115762'
     }
 
     stages {
@@ -28,9 +27,11 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                bat """
-                sonar-scanner.bat -D"sonar.projectKey=${SONARQUBE_PROJECT_KEY}" -D"sonar.sources=." -D"sonar.host.url=${SONAR_HOST_URL}" -D"sonar.login=${SONAR_TOKEN}"
-                """
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
+                    bat """
+                    sonar-scanner.bat -D"sonar.projectKey=${SONARQUBE_PROJECT_KEY}" -D"sonar.sources=." -D"sonar.host.url=${SONAR_HOST_URL}" -D"sonar.login=%SONAR_TOKEN%"
+                    """
+                }
             }
         }
 
