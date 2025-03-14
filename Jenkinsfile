@@ -8,6 +8,8 @@ pipeline {
         IMAGE_NAME = 'ankurk11/ankur22bcd46-app'
         CONTAINER_NAME = 'ankur22bcd46-container'
         REGISTRY = 'docker.io'
+        SONAR_HOST_URL = 'http://localhost:9000'  
+        SONAR_AUTH_TOKEN = 'Analyze "Ankur22BCD46-NodeApp" 1'
     }
 
     stages {
@@ -27,31 +29,37 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    bat "sonar-scanner -Dsonar.projectKey=%SONARQUBE_PROJECT_KEY% -Dsonar.sources=."
+                    bat """
+                        docker run --rm ^
+                        -e SONAR_HOST_URL=${SONAR_HOST_URL} ^
+                        -e SONAR_LOGIN=${SONAR_AUTH_TOKEN} ^
+                        -v %CD%:/usr/src ^
+                        sonarsource/sonar-scanner-cli:latest ^
+                        -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} ^
+                        -Dsonar.sources=.
+                    """
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:latest ."
+                bat "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
 
         stage('Push to Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS% ${REGISTRY}"
-                    bat "docker push %IMAGE_NAME%:latest"
+                    bat "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${REGISTRY}"
+                    bat "docker push ${IMAGE_NAME}:latest"
                 }
             }
         }
 
         stage('Deploy Container') {
             steps {
-                bat "docker stop %CONTAINER_NAME% || exit 0"
-                bat "docker rm %CONTAINER_NAME% || exit 0"
-                bat "docker run -d --name %CONTAINER_NAME% -p 8080:8080 %IMAGE_NAME%:latest"
+                bat "docker run -d --name ${CONTAINER_NAME} -p 8080:8080 ${IMAGE_NAME}:latest"
             }
         }
     }
