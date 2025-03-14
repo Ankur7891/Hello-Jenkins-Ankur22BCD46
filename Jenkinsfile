@@ -29,10 +29,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 bat """
-                sonar-scanner -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} ^
-                              -Dsonar.sources=. ^
-                              -Dsonar.host.url=${SONAR_HOST_URL} ^
-                              -Dsonar.login=${SONAR_TOKEN}
+                sonar-scanner.bat -D"sonar.projectKey=${SONARQUBE_PROJECT_KEY}" -D"sonar.sources=." -D"sonar.host.url=${SONAR_HOST_URL}" -D"sonar.login=${SONAR_TOKEN}"
                 """
             }
         }
