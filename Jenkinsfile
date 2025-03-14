@@ -8,8 +8,8 @@ pipeline {
         IMAGE_NAME = 'ankurk11/ankur22bcd46-app'
         CONTAINER_NAME = 'ankur22bcd46-container'
         REGISTRY = 'docker.io'
-        SONAR_HOST_URL = 'http://localhost:9000'  
-        SONAR_AUTH_TOKEN = 'Analyze "Ankur22BCD46-NodeApp" 1'
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_TOKEN = 'sqp_69f5f8d73a43f87e9c73e544b0f2dda132115762'
     }
 
     stages {
@@ -28,17 +28,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    bat """
-                        docker run --rm ^
-                        -e SONAR_HOST_URL=${SONAR_HOST_URL} ^
-                        -e SONAR_LOGIN=${SONAR_AUTH_TOKEN} ^
-                        -v %CD%:/usr/src ^
-                        sonarsource/sonar-scanner-cli:latest ^
-                        -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} ^
-                        -Dsonar.sources=.
-                    """
-                }
+                bat """
+                sonar-scanner -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} ^
+                              -Dsonar.sources=. ^
+                              -Dsonar.host.url=${SONAR_HOST_URL} ^
+                              -Dsonar.login=${SONAR_TOKEN}
+                """
             }
         }
 
@@ -51,8 +46,10 @@ pipeline {
         stage('Push to Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${REGISTRY}"
-                    bat "docker push ${IMAGE_NAME}:latest"
+                    bat """
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin ${REGISTRY}
+                    docker push ${IMAGE_NAME}:latest
+                    """
                 }
             }
         }
