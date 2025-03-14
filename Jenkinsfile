@@ -19,37 +19,39 @@ pipeline {
 
         stage('Install Dependencies & Test') {
             steps {
-                sh 'npm install'
-                sh 'npm test'
+                bat 'npm install'
+                bat 'npm test'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh "sonar-scanner -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} -Dsonar.sources=."
+                    bat "sonar-scanner -Dsonar.projectKey=%SONARQUBE_PROJECT_KEY% -Dsonar.sources=."
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:latest ."
+                bat "docker build -t %IMAGE_NAME%:latest ."
             }
         }
 
         stage('Push to Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${REGISTRY}"
-                    sh "docker push ${IMAGE_NAME}:latest"
+                    bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS% ${REGISTRY}"
+                    bat "docker push %IMAGE_NAME%:latest"
                 }
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh "docker run -d --name ${CONTAINER_NAME} -p 8080:8080 ${IMAGE_NAME}:latest"
+                bat "docker stop %CONTAINER_NAME% || exit 0"
+                bat "docker rm %CONTAINER_NAME% || exit 0"
+                bat "docker run -d --name %CONTAINER_NAME% -p 8080:8080 %IMAGE_NAME%:latest"
             }
         }
     }
